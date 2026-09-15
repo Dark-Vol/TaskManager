@@ -24,6 +24,10 @@ target_include_directories(taskmanager_lib PUBLIC include)
 add_executable(taskmanager src/main.cpp)
 target_link_libraries(taskmanager PRIVATE taskmanager_lib)
 
+if(WIN32)
+    target_link_libraries(taskmanager PRIVATE shell32)
+endif()
+
 enable_testing()
 
 add_executable(taskmanager_tests tests/TaskManagerTests.cpp)

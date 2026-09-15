@@ -1,0 +1,14 @@
+{
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/include"
+    ],
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+    "c-cpp-compile-run.cpp-compiler": "g++",
+    "c-cpp-compile-run.cpp-flags": "-Wall -Wextra -g3 -std=c++17 e:/Programmers/GitHub/C++/TaskManager/src/Task.cpp e:/Programmers/GitHub/C++/TaskManager/src/TaskManager.cpp e:/Programmers/GitHub/C++/TaskManager/src/CommandParser.cpp e:/Programmers/GitHub/C++/TaskManager/src/CLI.cpp",
+    "c-cpp-compile-run.additional-include-paths": [
+        "${workspaceFolder}/include"
+    ],
+    "c-cpp-compile-run.output-location": "${workspaceFolder}/src/output",
+    "c-cpp-compile-run.run-args": "list"
+}

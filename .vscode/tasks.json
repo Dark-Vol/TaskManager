@@ -1,0 +1,67 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build taskmanager",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++17",
+                "-Wall",
+                "-Wextra",
+                "-g3",
+                "-I${workspaceFolder}/include",
+                "${workspaceFolder}/src/main.cpp",
+                "${workspaceFolder}/src/Task.cpp",
+                "${workspaceFolder}/src/TaskManager.cpp",
+                "${workspaceFolder}/src/CommandParser.cpp",
+                "${workspaceFolder}/src/CLI.cpp",
+                "-o",
+                "${workspaceFolder}/build/taskmanager.exe"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "build tests",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++17",
+                "-Wall",
+                "-Wextra",
+                "-g3",
+                "-I${workspaceFolder}/include",
+                "${workspaceFolder}/tests/TaskManagerTests.cpp",
+                "${workspaceFolder}/src/Task.cpp",
+                "${workspaceFolder}/src/TaskManager.cpp",
+                "-o",
+                "${workspaceFolder}/build/taskmanager_tests.exe"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "run tests",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/taskmanager_tests.exe",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": "build tests",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        }
+    ]
+}

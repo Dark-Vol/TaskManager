@@ -3,7 +3,7 @@ out/
 cmake-build-*/
 .vs/
 .idea/
-.vscode/
+src/output/
 CMakeUserPresets.json
 
 CMakeCache.txt

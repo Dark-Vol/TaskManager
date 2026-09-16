@@ -27,4 +27,4 @@ Testing/
 data/tasks.txt
 *.log
 
-.CHANGELOG.md/
+CHANGELOG.md

@@ -1,6 +1,7 @@
 #include "taskmanager/CLI.hpp"
 #include "taskmanager/CommandParser.hpp"
 #include "taskmanager/Console.hpp"
+#include "taskmanager/Gui.hpp"
 #include "taskmanager/Menu.hpp"
 #include "taskmanager/Paths.hpp"
 #include "taskmanager/TaskManager.hpp"
@@ -272,6 +273,8 @@ int CLI::run(int argc, char* argv[])
 
     switch (command.type)
     {
+    case CommandType::Gui:
+        return runGui(manager);
     case CommandType::Menu:
     {
         Menu menu(manager);

@@ -20,8 +20,15 @@ add_library(taskmanager_lib
     src/View.cpp
     src/Menu.cpp
     src/Paths.cpp
+    src/Encoding.cpp
+    src/Gui.cpp
     src/CLI.cpp
 )
+
+# The window is built on the Win32 API, so it needs the common controls library.
+if(WIN32)
+    target_link_libraries(taskmanager_lib PUBLIC comctl32 user32 gdi32)
+endif()
 
 target_include_directories(taskmanager_lib PUBLIC include)
 

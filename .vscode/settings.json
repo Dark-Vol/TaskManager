@@ -5,7 +5,8 @@
     "C_Cpp.default.cppStandard": "c++17",
     "C_Cpp.default.compilerPath": "C:/msys64/mingw64/bin/g++.exe",
     "c-cpp-compile-run.cpp-compiler": "g++",
-    "c-cpp-compile-run.cpp-flags": "-Wall -Wextra -g3 -std=c++17 e:/Programmers/GitHub/C++/TaskManager/src/Task.cpp e:/Programmers/GitHub/C++/TaskManager/src/TaskManager.cpp e:/Programmers/GitHub/C++/TaskManager/src/CommandParser.cpp e:/Programmers/GitHub/C++/TaskManager/src/Console.cpp e:/Programmers/GitHub/C++/TaskManager/src/View.cpp e:/Programmers/GitHub/C++/TaskManager/src/Menu.cpp e:/Programmers/GitHub/C++/TaskManager/src/Paths.cpp e:/Programmers/GitHub/C++/TaskManager/src/CLI.cpp",
+    "c-cpp-compile-run.cpp-flags": "-Wall -Wextra -g3 -std=c++17 e:/Programmers/GitHub/C++/TaskManager/src/Task.cpp e:/Programmers/GitHub/C++/TaskManager/src/TaskManager.cpp e:/Programmers/GitHub/C++/TaskManager/src/CommandParser.cpp e:/Programmers/GitHub/C++/TaskManager/src/Console.cpp e:/Programmers/GitHub/C++/TaskManager/src/View.cpp e:/Programmers/GitHub/C++/TaskManager/src/Menu.cpp e:/Programmers/GitHub/C++/TaskManager/src/Paths.cpp e:/Programmers/GitHub/C++/TaskManager/src/Encoding.cpp e:/Programmers/GitHub/C++/TaskManager/src/Gui.cpp e:/Programmers/GitHub/C++/TaskManager/src/CLI.cpp",
+    "c-cpp-compile-run.cpp-linker-flags": "-lcomctl32 -lgdi32",
     "c-cpp-compile-run.additional-include-paths": [
         "${workspaceFolder}/include"
     ],

@@ -19,9 +19,13 @@
                 "${workspaceFolder}/src/View.cpp",
                 "${workspaceFolder}/src/Menu.cpp",
                 "${workspaceFolder}/src/Paths.cpp",
+                "${workspaceFolder}/src/Encoding.cpp",
+                "${workspaceFolder}/src/Gui.cpp",
                 "${workspaceFolder}/src/CLI.cpp",
                 "-o",
-                "${workspaceFolder}/build/taskmanager.exe"
+                "${workspaceFolder}/build/taskmanager.exe",
+                "-lcomctl32",
+                "-lgdi32"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"

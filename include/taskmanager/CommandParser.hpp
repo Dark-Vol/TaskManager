@@ -20,6 +20,7 @@ enum class CommandType
     Search,
     Stats,
     Menu,
+    Gui,
     Help,
     Unknown
 };

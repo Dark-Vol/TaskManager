@@ -1,7 +1,7 @@
 build/
 out/
 cmake-build-*/
-.vs/
+.vscode/
 .idea/
 src/output/
 CMakeUserPresets.json
@@ -26,3 +26,5 @@ Testing/
 
 data/tasks.txt
 *.log
+
+.CHANGELOG.md/

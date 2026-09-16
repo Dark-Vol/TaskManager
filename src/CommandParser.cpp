@@ -1,20 +1,10 @@
 #include "taskmanager/CommandParser.hpp"
 
-#include <cctype>
 #include <sstream>
 
 namespace
 {
-    std::string toLowerCopy(std::string text)
-    {
-        for (char& ch : text)
-        {
-            ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-        }
-        return text;
-    }
-
-    bool parsePositiveId(const std::string& text, int& out)
+    bool parsePositiveId(const std::string &text, int &out)
     {
         if (text.empty())
         {
@@ -39,24 +29,39 @@ namespace
         }
     }
 
-    CommandType commandFromName(const std::string& name)
+    CommandType commandFromName(const std::string &name)
     {
         const std::string value = toLowerCopy(name);
 
-        if (value == "add") return CommandType::Add;
-        if (value == "list") return CommandType::List;
-        if (value == "show") return CommandType::Show;
-        if (value == "start") return CommandType::Start;
-        if (value == "done") return CommandType::Done;
-        if (value == "delete") return CommandType::Delete;
-        if (value == "update") return CommandType::Update;
-        if (value == "search") return CommandType::Search;
-        if (value == "help" || value == "-h" || value == "--help") return CommandType::Help;
+        if (value == "add")
+            return CommandType::Add;
+        if (value == "list")
+            return CommandType::List;
+        if (value == "show")
+            return CommandType::Show;
+        if (value == "start")
+            return CommandType::Start;
+        if (value == "done")
+            return CommandType::Done;
+        if (value == "reopen")
+            return CommandType::Reopen;
+        if (value == "delete")
+            return CommandType::Delete;
+        if (value == "update")
+            return CommandType::Update;
+        if (value == "search")
+            return CommandType::Search;
+        if (value == "stats")
+            return CommandType::Stats;
+        if (value == "menu")
+            return CommandType::Menu;
+        if (value == "help" || value == "-h" || value == "--help")
+            return CommandType::Help;
 
         return CommandType::Unknown;
     }
 
-    std::string join(const std::vector<std::string>& parts)
+    std::string join(const std::vector<std::string> &parts)
     {
         std::ostringstream stream;
         for (std::size_t i = 0; i < parts.size(); ++i)
@@ -69,15 +74,20 @@ namespace
         }
         return stream.str();
     }
+
+    bool isFlagWithoutValue(const std::string &key)
+    {
+        return key == "overdue" || key == "no-color";
+    }
 }
 
-Command CommandParser::parse(int argc, char* argv[]) const
+Command CommandParser::parse(int argc, char *argv[]) const
 {
     Command command;
 
     if (argc < 2)
     {
-        command.type = CommandType::Help;
+        command.type = CommandType::Menu;
         return command;
     }
 
@@ -89,12 +99,9 @@ Command CommandParser::parse(int argc, char* argv[]) const
         return command;
     }
 
-    if (command.type == CommandType::Help)
-    {
-        return command;
-    }
-
     std::vector<std::string> positionals;
+    std::string rawTags;
+    bool hasRawTags = false;
 
     for (int i = 2; i < argc; ++i)
     {
@@ -123,7 +130,8 @@ Command CommandParser::parse(int argc, char* argv[]) const
             else
             {
                 key = toLowerCopy(arg.substr(2));
-                if (i + 1 < argc)
+
+                if (!isFlagWithoutValue(key) && i + 1 < argc)
                 {
                     const std::string next = argv[i + 1];
                     if (next.rfind("-", 0) != 0)
@@ -137,10 +145,14 @@ Command CommandParser::parse(int argc, char* argv[]) const
         }
         else if (arg == "-p" || arg == "-d" || arg == "-t" || arg == "-s")
         {
-            if (arg == "-p") key = "priority";
-            if (arg == "-d") key = "description";
-            if (arg == "-t") key = "title";
-            if (arg == "-s") key = "status";
+            if (arg == "-p")
+                key = "priority";
+            if (arg == "-d")
+                key = "description";
+            if (arg == "-t")
+                key = "title";
+            if (arg == "-s")
+                key = "status";
 
             if (i + 1 >= argc)
             {
@@ -159,6 +171,18 @@ Command CommandParser::parse(int argc, char* argv[]) const
         else
         {
             positionals.push_back(arg);
+            continue;
+        }
+
+        if (key == "overdue")
+        {
+            command.overdueOnly = true;
+            continue;
+        }
+
+        if (key == "no-color")
+        {
+            command.useColor = false;
             continue;
         }
 
@@ -197,12 +221,35 @@ Command CommandParser::parse(int argc, char* argv[]) const
             }
             command.statusFilter = status;
         }
+        else if (key == "due")
+        {
+            if (toLowerCopy(value) == "none")
+            {
+                command.clearDueDate = true;
+            }
+            else
+            {
+                std::chrono::system_clock::time_point dueDate{};
+                if (!parseDate(value, dueDate))
+                {
+                    command.error = "Invalid date. Use the YYYY-MM-DD format.";
+                    return command;
+                }
+                command.dueDate = dueDate;
+            }
+        }
+        else if (key == "tag" || key == "tags")
+        {
+            rawTags = value;
+            hasRawTags = true;
+        }
         else if (key == "sort")
         {
             const std::string sort = toLowerCopy(value);
-            if (sort != "id" && sort != "priority" && sort != "date" && sort != "title")
+            if (sort != "id" && sort != "priority" && sort != "date" && sort != "due" &&
+                sort != "title")
             {
-                command.error = "Invalid sort field. Use id, priority, date, or title.";
+                command.error = "Invalid sort field. Use id, priority, date, due, or title.";
                 return command;
             }
             command.sortBy = sort;
@@ -211,6 +258,20 @@ Command CommandParser::parse(int argc, char* argv[]) const
         {
             command.error = "Unknown option '--" + key + "'.";
             return command;
+        }
+    }
+
+    const bool tagsAreFilter = command.type == CommandType::List;
+
+    if (hasRawTags)
+    {
+        if (tagsAreFilter)
+        {
+            command.tagFilter = rawTags;
+        }
+        else
+        {
+            command.tags = splitTags(rawTags);
         }
     }
 
@@ -236,6 +297,7 @@ Command CommandParser::parse(int argc, char* argv[]) const
     case CommandType::Show:
     case CommandType::Start:
     case CommandType::Done:
+    case CommandType::Reopen:
     case CommandType::Delete:
         if (positionals.empty() || !parsePositiveId(positionals[0], command.taskId))
         {
@@ -254,9 +316,10 @@ Command CommandParser::parse(int argc, char* argv[]) const
             break;
         }
         command.hasTaskId = true;
-        if (!command.hasTitle && !command.hasDescription && !command.hasPriority)
+        if (!command.hasTitle && !command.hasDescription && !command.hasPriority &&
+            !command.dueDate.has_value() && !command.clearDueDate && !command.tags.has_value())
         {
-            command.error = "Missing argument. Usage: taskmanager update <id> [--title ...] [--description ...] [--priority ...]";
+            command.error = "Missing argument. Usage: taskmanager update <id> [--title ...] [--description ...] [--priority ...] [--due ...] [--tag ...]";
         }
         break;
 

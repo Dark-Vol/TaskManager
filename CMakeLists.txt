@@ -16,6 +16,10 @@ add_library(taskmanager_lib
     src/Task.cpp
     src/TaskManager.cpp
     src/CommandParser.cpp
+    src/Console.cpp
+    src/View.cpp
+    src/Menu.cpp
+    src/Paths.cpp
     src/CLI.cpp
 )
 

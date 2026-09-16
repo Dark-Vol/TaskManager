@@ -61,15 +61,6 @@ namespace
         return fields;
     }
 
-    std::string toLowerCopy(std::string text)
-    {
-        std::transform(text.begin(), text.end(), text.begin(),
-                       [](unsigned char ch) {
-                           return static_cast<char>(std::tolower(ch));
-                       });
-        return text;
-    }
-
     bool containsIgnoreCase(const std::string& text, const std::string& query)
     {
         const std::string haystack = toLowerCopy(text);
@@ -84,17 +75,37 @@ TaskManager::TaskManager(std::string storagePath)
     load();
 }
 
+bool TaskPatch::empty() const
+{
+    return !title.has_value() && !description.has_value() && !priority.has_value() &&
+           !dueDate.has_value() && !clearDueDate && !tags.has_value();
+}
+
 int TaskManager::addTask(const std::string& title,
                          const std::string& description,
                          Priority priority)
 {
-    if (title.empty())
+    TaskDraft draft;
+    draft.title = title;
+    draft.description = description;
+    draft.priority = priority;
+    return addTask(draft);
+}
+
+int TaskManager::addTask(const TaskDraft& draft)
+{
+    if (draft.title.empty())
     {
         return -1;
     }
 
     const int id = nextId_++;
-    tasks_.push_back(Task(id, title, description, priority));
+
+    Task task(id, draft.title, draft.description, draft.priority);
+    task.setDueDate(draft.dueDate);
+    task.setTags(draft.tags);
+
+    tasks_.push_back(std::move(task));
     persist();
     return id;
 }
@@ -152,10 +163,7 @@ OperationResult TaskManager::completeTask(int id)
     return OperationResult::Success;
 }
 
-OperationResult TaskManager::updateTask(int id,
-                                        const std::optional<std::string>& title,
-                                        const std::optional<std::string>& description,
-                                        const std::optional<Priority>& priority)
+OperationResult TaskManager::reopenTask(int id)
 {
     Task* task = findTask(id);
     if (task == nullptr)
@@ -163,27 +171,71 @@ OperationResult TaskManager::updateTask(int id,
         return OperationResult::NotFound;
     }
 
-    if (title.has_value())
+    if (task->getStatus() == Status::Todo)
     {
-        if (title->empty())
+        return OperationResult::InvalidTransition;
+    }
+
+    task->setStatus(Status::Todo);
+    persist();
+    return OperationResult::Success;
+}
+
+OperationResult TaskManager::updateTask(int id, const TaskPatch& patch)
+{
+    Task* task = findTask(id);
+    if (task == nullptr)
+    {
+        return OperationResult::NotFound;
+    }
+
+    if (patch.title.has_value())
+    {
+        if (patch.title->empty())
         {
             return OperationResult::EmptyTitle;
         }
-        task->setTitle(*title);
+        task->setTitle(*patch.title);
     }
 
-    if (description.has_value())
+    if (patch.description.has_value())
     {
-        task->setDescription(*description);
+        task->setDescription(*patch.description);
     }
 
-    if (priority.has_value())
+    if (patch.priority.has_value())
     {
-        task->setPriority(*priority);
+        task->setPriority(*patch.priority);
+    }
+
+    if (patch.clearDueDate)
+    {
+        task->setDueDate(std::nullopt);
+    }
+    else if (patch.dueDate.has_value())
+    {
+        task->setDueDate(patch.dueDate);
+    }
+
+    if (patch.tags.has_value())
+    {
+        task->setTags(*patch.tags);
     }
 
     persist();
     return OperationResult::Success;
+}
+
+OperationResult TaskManager::updateTask(int id,
+                                        const std::optional<std::string>& title,
+                                        const std::optional<std::string>& description,
+                                        const std::optional<Priority>& priority)
+{
+    TaskPatch patch;
+    patch.title = title;
+    patch.description = description;
+    patch.priority = priority;
+    return updateTask(id, patch);
 }
 
 Task* TaskManager::findTask(int id)
@@ -224,13 +276,62 @@ std::vector<Task> TaskManager::searchTasks(const std::string& query) const
     for (const Task& task : tasks_)
     {
         if (containsIgnoreCase(task.getTitle(), query) ||
-            containsIgnoreCase(task.getDescription(), query))
+            containsIgnoreCase(task.getDescription(), query) ||
+            containsIgnoreCase(joinTags(task.getTags()), query))
         {
             result.push_back(task);
         }
     }
 
     return result;
+}
+
+Statistics TaskManager::getStatistics() const
+{
+    const auto now = std::chrono::system_clock::now();
+    Statistics stats;
+    stats.total = tasks_.size();
+
+    for (const Task& task : tasks_)
+    {
+        switch (task.getStatus())
+        {
+        case Status::Todo:
+            ++stats.todo;
+            break;
+        case Status::InProgress:
+            ++stats.inProgress;
+            break;
+        case Status::Done:
+            ++stats.done;
+            break;
+        }
+
+        switch (task.getPriority())
+        {
+        case Priority::Low:
+            ++stats.low;
+            break;
+        case Priority::Medium:
+            ++stats.medium;
+            break;
+        case Priority::High:
+            ++stats.high;
+            break;
+        }
+
+        if (task.isOverdue(now))
+        {
+            ++stats.overdue;
+        }
+    }
+
+    return stats;
+}
+
+const std::string& TaskManager::getStoragePath() const
+{
+    return storagePath_;
 }
 
 void TaskManager::load()
@@ -257,8 +358,9 @@ void TaskManager::load()
             line.pop_back();
         }
 
+        // Records written before due dates and tags existed have only 6 fields.
         const std::vector<std::string> fields = splitRecord(line);
-        if (fields.size() != 6)
+        if (fields.size() != 6 && fields.size() != 8)
         {
             continue;
         }
@@ -283,7 +385,20 @@ void TaskManager::load()
             continue;
         }
 
-        tasks_.push_back(Task(id, fields[1], fields[2], status, priority, createdAt));
+        Task task(id, fields[1], fields[2], status, priority, createdAt);
+
+        if (fields.size() == 8)
+        {
+            std::chrono::system_clock::time_point dueDate{};
+            if (!fields[6].empty() && parseDate(fields[6], dueDate))
+            {
+                task.setDueDate(dueDate);
+            }
+
+            task.setTags(splitTags(fields[7]));
+        }
+
+        tasks_.push_back(std::move(task));
         nextId_ = std::max(nextId_, id + 1);
     }
 }
@@ -303,7 +418,7 @@ void TaskManager::save() const
         return;
     }
 
-    output << "# id|title|description|status|priority|createdAt\n";
+    output << "# id|title|description|status|priority|createdAt|dueDate|tags\n";
 
     for (const Task& task : tasks_)
     {
@@ -312,7 +427,9 @@ void TaskManager::save() const
                << escapeField(task.getDescription()) << '|'
                << toString(task.getStatus()) << '|'
                << toString(task.getPriority()) << '|'
-               << formatDate(task.getCreatedAt()) << '\n';
+               << formatDate(task.getCreatedAt()) << '|'
+               << (task.getDueDate().has_value() ? formatDate(*task.getDueDate()) : "") << '|'
+               << escapeField(joinTags(task.getTags())) << '\n';
     }
 }
 

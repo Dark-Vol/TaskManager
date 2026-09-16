@@ -15,6 +15,10 @@
                 "${workspaceFolder}/src/Task.cpp",
                 "${workspaceFolder}/src/TaskManager.cpp",
                 "${workspaceFolder}/src/CommandParser.cpp",
+                "${workspaceFolder}/src/Console.cpp",
+                "${workspaceFolder}/src/View.cpp",
+                "${workspaceFolder}/src/Menu.cpp",
+                "${workspaceFolder}/src/Paths.cpp",
                 "${workspaceFolder}/src/CLI.cpp",
                 "-o",
                 "${workspaceFolder}/build/taskmanager.exe"

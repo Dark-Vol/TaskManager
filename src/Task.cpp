@@ -7,16 +7,13 @@
 #include <sstream>
 #include <utility>
 
-namespace
+std::string toLowerCopy(std::string text)
 {
-    std::string toLowerCopy(std::string text)
-    {
-        std::transform(text.begin(), text.end(), text.begin(),
-                       [](unsigned char ch) {
-                           return static_cast<char>(std::tolower(ch));
-                       });
-        return text;
-    }
+    std::transform(text.begin(), text.end(), text.begin(),
+                   [](unsigned char ch) {
+                       return static_cast<char>(std::tolower(ch));
+                   });
+    return text;
 }
 
 Task::Task(int id, std::string title, std::string description, Priority priority)
@@ -74,6 +71,16 @@ std::chrono::system_clock::time_point Task::getCreatedAt() const
     return createdAt_;
 }
 
+const std::optional<std::chrono::system_clock::time_point>& Task::getDueDate() const
+{
+    return dueDate_;
+}
+
+const std::vector<std::string>& Task::getTags() const
+{
+    return tags_;
+}
+
 void Task::setTitle(const std::string& title)
 {
     title_ = title;
@@ -92,6 +99,36 @@ void Task::setStatus(Status status)
 void Task::setPriority(Priority priority)
 {
     priority_ = priority;
+}
+
+void Task::setDueDate(std::optional<std::chrono::system_clock::time_point> dueDate)
+{
+    dueDate_ = dueDate;
+}
+
+void Task::setTags(std::vector<std::string> tags)
+{
+    tags_ = std::move(tags);
+}
+
+bool Task::hasTag(const std::string& tag) const
+{
+    const std::string needle = toLowerCopy(tag);
+
+    return std::any_of(tags_.begin(), tags_.end(),
+                       [&needle](const std::string& own) {
+                           return toLowerCopy(own) == needle;
+                       });
+}
+
+bool Task::isOverdue(std::chrono::system_clock::time_point now) const
+{
+    if (!dueDate_.has_value() || status_ == Status::Done)
+    {
+        return false;
+    }
+
+    return *dueDate_ < now;
 }
 
 std::string toString(Status status)
@@ -230,4 +267,62 @@ bool parseDate(const std::string& text, std::chrono::system_clock::time_point& o
 
     out = std::chrono::system_clock::from_time_t(time);
     return true;
+}
+
+std::vector<std::string> splitTags(const std::string& text)
+{
+    std::vector<std::string> tags;
+    std::string current;
+
+    const auto flush = [&tags, &current]() {
+        const auto first = current.find_first_not_of(" \t");
+        if (first == std::string::npos)
+        {
+            current.clear();
+            return;
+        }
+
+        const auto last = current.find_last_not_of(" \t");
+        std::string tag = current.substr(first, last - first + 1);
+        current.clear();
+
+        const bool duplicate = std::any_of(tags.begin(), tags.end(),
+                                           [&tag](const std::string& own) {
+                                               return toLowerCopy(own) == toLowerCopy(tag);
+                                           });
+        if (!duplicate)
+        {
+            tags.push_back(std::move(tag));
+        }
+    };
+
+    for (char ch : text)
+    {
+        if (ch == ',' || ch == ';')
+        {
+            flush();
+            continue;
+        }
+
+        current.push_back(ch);
+    }
+
+    flush();
+    return tags;
+}
+
+std::string joinTags(const std::vector<std::string>& tags)
+{
+    std::string result;
+
+    for (const std::string& tag : tags)
+    {
+        if (!result.empty())
+        {
+            result.push_back(',');
+        }
+        result += tag;
+    }
+
+    return result;
 }

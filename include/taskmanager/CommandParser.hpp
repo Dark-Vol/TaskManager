@@ -2,6 +2,7 @@
 
 #include "taskmanager/Task.hpp"
 
+#include <chrono>
 #include <optional>
 #include <string>
 #include <vector>
@@ -13,9 +14,12 @@ enum class CommandType
     Show,
     Start,
     Done,
+    Reopen,
     Delete,
     Update,
     Search,
+    Stats,
+    Menu,
     Help,
     Unknown
 };
@@ -34,10 +38,18 @@ struct Command
     bool hasPriority = false;
     bool hasTaskId = false;
 
+    std::optional<std::chrono::system_clock::time_point> dueDate;
+    bool clearDueDate = false;
+    std::optional<std::vector<std::string>> tags;
+
     std::optional<Status> statusFilter;
     std::optional<Priority> priorityFilter;
+    std::string tagFilter;
+    bool overdueOnly = false;
     std::string sortBy;
     std::string query;
+
+    bool useColor = true;
 
     std::string error;
 };

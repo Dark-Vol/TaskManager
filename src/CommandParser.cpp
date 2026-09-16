@@ -55,6 +55,8 @@ namespace
             return CommandType::Stats;
         if (value == "menu")
             return CommandType::Menu;
+        if (value == "gui" || value == "window")
+            return CommandType::Gui;
         if (value == "help" || value == "-h" || value == "--help")
             return CommandType::Help;
 
@@ -85,9 +87,11 @@ Command CommandParser::parse(int argc, char *argv[]) const
 {
     Command command;
 
+    // Without arguments the program opens its window; the text menu stays
+    // available through the 'menu' command.
     if (argc < 2)
     {
-        command.type = CommandType::Menu;
+        command.type = CommandType::Gui;
         return command;
     }
 
